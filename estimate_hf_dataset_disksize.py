@@ -4,10 +4,10 @@ Show total and per-top-level-directory sizes for one or more Hugging Face datase
 
 Usage:
     # With defaults (nvidia/ClimbLab and OptimalScale/ClimbLab)
-    python estimate_hf_dataset_discsize.py
+    python estimate_hf_dataset_disksize.py
 
     # Explicit list (maximum of 10 datasets allowed)
-    python estimate_hf_dataset_discsize.py --datasets "repo1, repo2, repo3"
+    python estimate_hf_dataset_disksize.py --datasets "repo1, repo2, repo3"
 
 Requirements:
     - huggingface_hub
@@ -23,13 +23,14 @@ REPO_TYPE = "dataset"
 REPO_DEFAULTS = ["nvidia/ClimbLab", "OptimalScale/ClimbLab"]
 
 
-def humanize_disc_size(num_bytes: int) -> str:
+def humanize_disc_size(num_bytes: int) -> str | None:
     units = ["B", "KB", "MB", "GB", "TB", "PB"]
-    for u in units:
-        if num_bytes < 1024 or u == units[-1]:
-            return f"{num_bytes:.2f} {u}"
+    for unit in units:
+        if num_bytes < 1024 or unit == units[-1]:
+            return f"{num_bytes:.2f} {unit}"
             
         num_bytes /= 1024
+    return None
 
 
 def list_files_with_sizes(repo_id: str, repo_type: str = REPO_TYPE) -> list[tuple[str, int]]:
@@ -43,10 +44,10 @@ def list_files_with_sizes(repo_id: str, repo_type: str = REPO_TYPE) -> list[tupl
     
     for sib in info.siblings:
         size = getattr(sib, "size", None)
-        rfilename = getattr(sib, "rfilename", None)
+        filename = getattr(sib, "rfilename", None)
         
-        if size is not None and rfilename:
-            files_metadata.append((rfilename, int(size)))
+        if size is not None and filename:
+            files_metadata.append((filename, int(size)))
             
     return files_metadata
 
@@ -82,21 +83,21 @@ def ask_yes_no(prompt: str, default: str = "n") -> bool:
     suffix = " [Y/n] " if default == "y" else " [y/N] "
     
     try:
-        ans = input(prompt + suffix).strip().lower()
+        answer = input(prompt + suffix).strip().lower()
     except EOFError:
-        ans = ""
+        answer = ""
 
-    if ans in {"y", "yes"}:
+    if answer in {"y", "yes"}:
         return True
         
-    if ans in {"n", "no"}:
+    if answer in {"n", "no"}:
         return False
         
-    # If ans equals none of the valid options, fall back to default
+    # If answer equals none of the valid options, fall back to default
     return default == "y"
 
 
-def show_discsizes(repos: list[str], repo_type: str = REPO_TYPE) -> None:
+def show_disk_sizes(repos: list[str], repo_type: str = REPO_TYPE) -> None:
     if not repos:
         print("No repositories provided.")
         return
@@ -152,7 +153,7 @@ def main() -> None:
         print("Proceeding with the first 10 datasets:")
 
     print(", ".join(repos))
-    show_discsizes(repos, REPO_TYPE)
+    show_disk_sizes(repos, REPO_TYPE)
 
 
 if __name__ == "__main__":
